@@ -8,65 +8,32 @@ PythonAI GeneticAlgorithm file
 
 __version__ = "0.0.1"
 
+from typing import Callable
 import numpy as np
 from random import uniform as random
 
-floor = np.math.floor
+from NeuralNetwork import NeuralNetwork
+
 randmatrix = np.random.uniform
+floor = np.math.floor
 
-class GeneticAlgorithm:
-    def __init__(self, network: list[int]) -> None:
-        if len(network) < 2:
-            raise Exception("Network Must Have At Least Two Layers")
+class GeneticAlgorithm(NeuralNetwork):
+    '''
+    Genetic Algorithm Class
+    '''
 
-        for i in range(len(network)):
-            if network[i] <= 0:
-                raise Exception("Network Layer {} Cannot have a size of 0 or less".format(i))
+    def crossover(self, parent2: 'GeneticAlgorithm', crossover: Callable) -> 'GeneticAlgorithm':
+        '''
+        Creates an offspring using the specified crossover function
+        '''
 
-        self.network = network
-
-        self.weights = np.zeros(len(network) - 1).tolist()
-        self.biases = np.zeros(len(network) - 1).tolist()
-
-        for i in range(len(network) - 1):
-            self.weights[i] = randmatrix(-1, 1, (network[i + 1], network[i]))
-
-        for i in range(1, len(network)):
-            self.biases[i - 1] = randmatrix(-1, 1, (network[i], 1))
-
-    def feedForward(self, inputs: list[float]) -> float:
-        ins = np.zeros((len(inputs), 1))
-        for i in range(len(inputs)):
-            ins[i][0] = inputs[i]
-
-        inputs = ins
-
-        for i in range(len(self.weights)):
-            inputs = np.matmul(self.weights[i], inputs)
-            inputs = np.add(inputs, self.biases[i])
-
-        return inputs.flatten()
-
-    def crossover(self, parent2: 'GeneticAlgorithm') -> 'GeneticAlgorithm':
-        child = GeneticAlgorithm(self.network)
-        child.weights = self.weights
-        child.biases = self.biases
-
-        for i in range(len(child.weights)):
-            for j in range(len(child.weights[i])):
-                for k in range(len(child.weights[i][j])):
-                    if random(0, 1) <= 0.5:
-                        child.weights[i][j][k] = parent2.weights[i][j][k]
-
-        for i in range(len(child.biases)):
-            for j in range(len(child.biases[i])):
-                for k in range(len(child.biases[i][j])):
-                    if random(0, 1) <= 0.5:
-                        child.weights[i][j][k] = parent2.biases[i][j][k]
-
-        return child
+        return crossover(self, parent2)
 
     def mutate(self) -> None:
+        '''
+        Mutates this Genetic Algorithm
+        '''
+
         for i in range(len(self.weights)):
             for j in range(len(self.weights[i])):
                 for k in range(len(self.weights[i][j])):
@@ -76,3 +43,80 @@ class GeneticAlgorithm:
             for j in range(len(self.biases[i])):
                 for k in range(len(self.biases[i][j])):
                     self.biases[i][j][k] += random(-1, 1)
+
+def RandomCrossover(parent1: GeneticAlgorithm, parent2: GeneticAlgorithm) -> GeneticAlgorithm:
+    '''
+    Crossover Function
+
+    %50 Chance to inherit from either parent
+    '''
+
+    child = GeneticAlgorithm(parent1.network)
+    child.weights = parent1.weights
+    child.biases = parent1.biases
+
+    for i in range(len(child.weights)):
+        for j in range(len(child.weights[i])):
+            for k in range(len(child.weights[i][j])):
+                if random(0, 1) <= 0.5:
+                    child.weights[i][j][k] = parent2.weights[i][j][k]
+
+    for i in range(len(child.biases)):
+        for j in range(len(child.biases[i])):
+            for k in range(len(child.biases[i][j])):
+                if random(0, 1) <= 0.5:
+                    child.weights[i][j][k] = parent2.biases[i][j][k]
+
+    return child
+
+def HalfCrossover(parent1: GeneticAlgorithm, parent2: GeneticAlgorithm) -> GeneticAlgorithm:
+    '''
+    Crossover Function
+
+    Takes half the genes from each parent
+    '''
+
+    child = GeneticAlgorithm(parent1.network)
+    child.weights = parent1.weights
+    child.biases = parent1.biases
+
+    for i in range(len(child.weights)):
+        for j in range(len(child.weights[i])):
+            for k in range(len(child.weights[i][j])):
+                if k > len(child.weights[i][j]) // 2:
+                    child.weights[i][j][k] = parent2.weights[i][j][k]
+
+    for i in range(len(child.biases)):
+        for j in range(len(child.biases[i])):
+            for k in range(len(child.biases[i][j])):
+                if k > len(child.weights[i][j]) // 2:
+                    child.weights[i][j][k] = parent2.biases[i][j][k]
+
+    return child
+
+def SliceCrossover(parent1: GeneticAlgorithm, parent2: GeneticAlgorithm) -> GeneticAlgorithm:
+    '''
+    Crossover Function
+
+    Picks a random area from parent2 to inherit from
+    '''
+
+    child = GeneticAlgorithm(parent1.network)
+    child.weights = parent1.weights
+    child.biases = parent1.biases
+
+    for i in range(len(child.weights)):
+        for j in range(len(child.weights[i])):
+            k_low = floor(random(0, len(child.weights[i][j])))
+            k_max = floor(random(k_low, len(child.weights[i][j])))
+            for k in range(len(child.weights[i][j])):
+                if k >= k_low and k < k_max:
+                    child.weights[i][j][k] = parent2.weights[i][j][k]
+
+    for i in range(len(child.biases)):
+        for j in range(len(child.biases[i])):
+            for k in range(len(child.biases[i][j])):
+                if k >= k_low and k < k_max:
+                    child.weights[i][j][k] = parent2.biases[i][j][k]
+
+    return child
