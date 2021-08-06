@@ -1,0 +1,4 @@
+__pycache__/
+build/
+cython_debug/
+*.c
